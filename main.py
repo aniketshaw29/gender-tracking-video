@@ -62,12 +62,12 @@ def run(camera_index: int = 0, classify_every: int = 15) -> None:
 
     def _load_models() -> None:
         nonlocal classifier
-        classifier = GenderClassifier()
-        _dummy = np.zeros((100, 100, 3), dtype=np.uint8)
+        from deepface import DeepFace
         try:
-            classifier.classify(_dummy, (0, 0, 100, 100))
+            DeepFace.build_model("Gender")  # force weights into memory before first classify
         except Exception:
             pass
+        classifier = GenderClassifier()
         classifier_ready.set()
 
     threading.Thread(target=_load_models, daemon=True).start()
@@ -107,8 +107,11 @@ def run(camera_index: int = 0, classify_every: int = 15) -> None:
                 person_db.update_position(person_id, centroid, frame_idx)
 
             # Step 2 — classify gender (gated until models finish loading)
+            # Classify immediately if no gender yet; otherwise throttle to every N frames
+            no_gender_yet = person_db.get_gender(person_id) is None
             last = id_last_frame.get(obj_id, -classify_every)
-            if classifier_ready.is_set() and frame_idx - last >= classify_every:
+            due = no_gender_yet or (frame_idx - last >= classify_every)
+            if classifier_ready.is_set() and due:
                 gender = classifier.classify(frame, box)
                 if gender:
                     id_last_frame[obj_id] = frame_idx
