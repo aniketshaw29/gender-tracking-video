@@ -68,14 +68,18 @@ Press **Q** to quit. Session totals are printed to the terminal on exit.
 
 ## Project files
 
-| File | Purpose |
+| File / Folder | Purpose |
 |---|---|
 | [main.py](main.py) | Entry point — camera loop, orchestration, display |
 | [detector.py](detector.py) | Face detection (DNN or Haar fallback) |
 | [classifier.py](classifier.py) | Gender classification via DeepFace |
 | [tracker.py](tracker.py) | Centroid tracker — stable IDs across frames |
+| [reid.py](reid.py) | Person re-identification via position memory |
 | [download_models.py](download_models.py) | Downloads the ResNet SSD face detector weights |
 | [requirements.txt](requirements.txt) | Python dependencies |
+| `captures/` | Auto-created at runtime — one JPEG saved per unique person when their gender is first confirmed |
+
+> Captured photos are named `person_000_Man_20260825_143012.jpg` (ID, gender, timestamp). The `captures/` folder is excluded from git via `.gitignore`.
 
 ---
 
