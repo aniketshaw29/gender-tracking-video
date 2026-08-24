@@ -87,11 +87,13 @@ Press **Q** to quit. Session totals are printed to the terminal on exit.
 
 | Doc | What it covers |
 |---|---|
-| [docs/architecture.md](docs/architecture.md) | System overview, data flow, component responsibilities |
+| [docs/architecture.md](docs/architecture.md) | System overview, data flow, component responsibilities, threading model |
 | [docs/face-detection.md](docs/face-detection.md) | How DNN and Haar face detection work |
-| [docs/gender-classification.md](docs/gender-classification.md) | How DeepFace classifies gender |
-| [docs/tracking.md](docs/tracking.md) | Centroid tracking algorithm |
-| [docs/performance.md](docs/performance.md) | Tuning for speed and accuracy |
+| [docs/gender-classification.md](docs/gender-classification.md) | How DeepFace classifies gender, model preloading, throttling |
+| [docs/tracking.md](docs/tracking.md) | Centroid tracking algorithm, `max_disappeared`, relationship to PersonDatabase |
+| [docs/person-reidentification.md](docs/person-reidentification.md) | Position-based re-ID, session-level memory, counting accuracy |
+| [docs/face-capture.md](docs/face-capture.md) | How face photos are saved to `captures/`, filename format, padding |
+| [docs/performance.md](docs/performance.md) | Tuning `classify_every`, `max_disappeared`, `position_radius`; GPU acceleration |
 
 ---
 

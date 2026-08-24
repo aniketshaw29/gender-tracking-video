@@ -1,45 +1,34 @@
 # Gender Classification
 
-Gender classification is handled by [DeepFace](https://github.com/serengil/deepface), a high-level Python library that wraps several state-of-the-art face analysis models.
+Gender classification is handled by [DeepFace](https://github.com/serengil/deepface), a Python library that wraps several state-of-the-art face analysis models.
 
 ---
 
-## What DeepFace does
-
-When you call:
+## What happens on each call
 
 ```python
 result = DeepFace.analyze(roi, actions=["gender"], enforce_detection=False, silent=True)
 ```
 
-DeepFace:
-
-1. Tries to detect and align a face within the `roi` (region of interest — the cropped face)
-2. Passes the aligned face through a **gender classification neural network**
-3. Returns a dictionary with a `"gender"` key containing probability scores:
+1. DeepFace tries to align the face within the `roi` (already a cropped face region)
+2. The aligned face is passed through the gender neural network
+3. Returns probability scores:
 
 ```python
 {
-    "gender": {
-        "Man": 97.3,    # percentage confidence
-        "Woman": 2.7,
-    },
+    "gender": {"Man": 97.3, "Woman": 2.7},
     "dominant_gender": "Man",
     ...
 }
 ```
 
-We take `max(scores, key=scores.get)` to get the predicted label.
+`classifier.py` takes `max(scores, key=scores.get)` to get the predicted label — `"Man"` or `"Woman"`.
 
 ---
 
-## The model behind it
+## The model
 
-DeepFace's gender classifier is a **convolutional neural network** trained on the [VGGFace2](https://www.robots.ox.ac.uk/~vgg/data/vgg_face2/) dataset — a large-scale face dataset with millions of images of thousands of identities.
-
-The architecture is based on **VGG-Face**, a deep CNN originally designed for face recognition. The gender branch replaces the identity classification head (thousands of classes) with a 2-class softmax head (Man / Woman).
-
-### Model pipeline
+DeepFace's gender classifier is a **convolutional neural network** trained on [VGGFace2](https://www.robots.ox.ac.uk/~vgg/data/vgg_face2/). The architecture is based on VGG-Face — a deep CNN for face recognition — with the identity head replaced by a 2-class softmax.
 
 ```
 Face crop (ROI)
@@ -49,7 +38,7 @@ Resize to 224×224
     │
     ▼
 VGG-Face feature extractor
-(13 convolutional layers, max-pooling, batch norm)
+(13 conv layers, max-pooling, batch norm)
     │
     ▼
 Global average pooling
@@ -61,58 +50,73 @@ Dense(512) → ReLU → Dropout
 Dense(2) → Softmax  →  { "Man": p, "Woman": 1-p }
 ```
 
-### First-run model download
+Model weights (~100 MB) are downloaded to `~/.deepface/weights/` on first run by DeepFace automatically. Subsequent runs load from disk.
 
-The first time you run the classifier, DeepFace downloads its model weights into `~/.deepface/weights/`. This is about **100 MB** and happens automatically. Subsequent runs load from disk instantly.
+---
+
+## Model preloading
+
+At startup, the background thread calls:
+
+```python
+DeepFace.build_model("Gender")
+```
+
+This forces the weights into memory **before** `classifier_ready` is set. Without this, the first real classify call on the main thread would trigger a lazy weight load — adding 3–4 s of lag after the loading banner disappears.
+
+Once `classifier_ready` fires, the first classify call for any face uses pre-loaded weights and returns in ~50–200 ms.
+
+---
+
+## Throttling
+
+DeepFace runs a full neural network forward pass per call — typically 50–200 ms on CPU. Running it every frame would block the display loop.
+
+The main loop throttles classification to avoid this:
+
+```python
+no_gender_yet = person_db.get_gender(person_id) is None
+due = no_gender_yet or (frame_idx - last >= classify_every)
+if classifier_ready.is_set() and due:
+    gender = classifier.classify(frame, box)
+```
+
+- **First appearance**: `no_gender_yet=True` → classify immediately (no wait)
+- **Subsequent frames**: classify once every `classify_every` frames (default 15, ~0.5 s at 30 fps)
+
+The last known label is displayed unchanged between calls — gender doesn't change frame-to-frame so this is invisible to the eye.
 
 ---
 
 ## `enforce_detection=False`
 
-By default, DeepFace raises an exception if it can't detect a face in the input image. We set `enforce_detection=False` because we've already detected the face with our own detector — the `roi` we pass in is already a cropped face region. If DeepFace's internal detector disagrees (common when the face is small or at the edge of the frame), this flag prevents a crash and lets it do its best with what it has.
+By default, DeepFace raises an exception if it can't detect a face inside the input image. We set this to `False` because we've already detected the face — the `roi` passed in is already a cropped face region. When DeepFace's internal detector disagrees (common for small or angled faces), this flag prevents a crash and lets it classify with what it has.
 
 ---
 
 ## `silent=True`
 
-Suppresses DeepFace's progress bar output that would otherwise clutter the terminal on every call.
+Suppresses DeepFace's progress bar output from cluttering the terminal on every call.
 
 ---
 
-## Why not every frame?
+## Limitations
 
-DeepFace runs a full neural network forward pass for each call — typically **50–200 ms** depending on hardware. At 30 fps, each frame is only ~33 ms, so calling classify every frame would make the display lag by multiple seconds.
+- **Binary only**: outputs Man or Woman — no "uncertain" or non-binary category
+- **Small faces**: crops under ~30×30 px produce unreliable predictions
+- **Lighting**: harsh directional shadows across the face reduce accuracy
+- **Training bias**: accuracy varies across demographics based on training data distribution
 
-The solution in `main.py`:
+---
+
+## Confidence filtering (optional)
+
+To skip low-confidence predictions, modify `classifier.py`:
 
 ```python
-if frame_idx - id_last_frame.get(obj_id, -classify_every) >= classify_every:
-    gender = classifier.classify(frame, box)
-```
-
-Classification happens at most once every `classify_every` frames (default: 15) per tracked ID. In between calls, the last known label is displayed unchanged. This is almost invisible to the eye — gender doesn't change frame to frame — while keeping the loop running at near-realtime speed.
-
----
-
-## Limitations to be aware of
-
-- **Binary classification**: DeepFace outputs Man/Woman. There is no "uncertain" or "non-binary" category.
-- **Requires a reasonable face crop**: Very small faces (< 30×30 px) or extreme angles lead to wrong or inconsistent predictions.
-- **Lighting sensitivity**: Harsh shadows across the face reduce accuracy.
-- **Training data bias**: Like all face analysis models, accuracy varies across demographics depending on how the training data was distributed.
-
----
-
-## Confidence scores
-
-The raw `gender` dict contains two scores that sum to 100. If you want to display confidence or skip low-confidence predictions, you can modify `classifier.py`:
-
-```python
-scores: dict[str, float] = result.get("gender", {})
+scores = result.get("gender", {})
 best = max(scores, key=scores.get)
-confidence = scores[best]
-
-if confidence < 70:
-    return None  # skip uncertain predictions
+if scores[best] < 70:
+    return None   # skip — main loop will retry next classify_every frames
 return best
 ```
