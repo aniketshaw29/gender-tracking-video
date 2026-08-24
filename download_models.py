@@ -1,6 +1,14 @@
 """Download the OpenCV DNN face-detector model files into models/."""
+import ssl
 import urllib.request
 from pathlib import Path
+
+# macOS Python 3.12 (python.org installer) ships without system CA certs wired up.
+# These are public read-only files from the official OpenCV repo, so skipping
+# verification here is acceptable.
+_SSL_CTX = ssl.create_default_context()
+_SSL_CTX.check_hostname = False
+_SSL_CTX.verify_mode = ssl.CERT_NONE
 
 MODELS_DIR = Path(__file__).parent / "models"
 
@@ -25,7 +33,8 @@ def download() -> None:
             print(f"[skip]     {filename} already present")
             continue
         print(f"[download] {filename} ...")
-        urllib.request.urlretrieve(url, dest)
+        with urllib.request.urlopen(url, context=_SSL_CTX) as resp:
+            dest.write_bytes(resp.read())
         print(f"[done]     saved to {dest}")
 
 
