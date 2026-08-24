@@ -10,9 +10,9 @@ class PersonDatabase:
     treated as the same person — they keep their ID and gender without being counted again.
     """
 
-    def __init__(self, position_radius: int = 200, memory_frames: int = 300) -> None:
+    def __init__(self, position_radius: int = 200, memory_frames: int | None = None) -> None:
         self.position_radius = position_radius
-        self.memory_frames = memory_frames
+        self.memory_frames = memory_frames  # None = remember everyone for the whole session
         self._lock = threading.Lock()
         self._next_id = 0
         self._persons: list[dict] = []
@@ -29,7 +29,7 @@ class PersonDatabase:
         with self._lock:
             best, best_dist = None, float("inf")
             for p in self._persons:
-                if current_frame - p["last_frame"] > self.memory_frames:
+                if self.memory_frames is not None and current_frame - p["last_frame"] > self.memory_frames:
                     continue  # entry too old
                 dist = float(np.linalg.norm(centroid - p["centroid"]))
                 if dist < best_dist:

@@ -55,7 +55,7 @@ def run(camera_index: int = 0, classify_every: int = 15) -> None:
     tracker = CentroidTracker(max_disappeared=60)
     # position_radius: how far (px) a returning face can be from its last known spot
     # memory_frames: how many frames (at ~30fps: 300 ≈ 10 seconds) a person is remembered
-    person_db = PersonDatabase(position_radius=200, memory_frames=300)
+    person_db = PersonDatabase(position_radius=200)
 
     classifier: GenderClassifier | None = None
     classifier_ready = threading.Event()
