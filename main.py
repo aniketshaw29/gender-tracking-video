@@ -144,10 +144,18 @@ def run(camera_index: int = 0, classify_every: int = 15) -> None:
             y_off += 32
 
         if not classifier_ready.is_set():
-            cv2.putText(
-                frame, "Loading models...",
-                (10, frame.shape[0] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 255), 2,
-            )
+            overlay = frame.copy()
+            cv2.rectangle(overlay, (0, 0), (frame.shape[1], frame.shape[0]), (0, 0, 0), -1)
+            cv2.addWeighted(overlay, 0.55, frame, 0.45, 0, frame)
+            dots = "." * ((frame_idx // 15 % 3) + 1)
+            cx, cy = frame.shape[1] // 2, frame.shape[0] // 2
+            for text, dy, scale, thickness in [
+                ("Please wait" + dots, -28, 0.9, 2),
+                ("Loading gender models...", 12, 0.6, 1),
+            ]:
+                (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, thickness)
+                cv2.putText(frame, text, (cx - tw // 2, cy + dy),
+                            cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 210, 255), thickness)
 
         cv2.imshow("Gender Tracking  [Q = quit]", frame)
         if cv2.waitKey(1) & 0xFF == ord("q"):
