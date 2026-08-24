@@ -4,46 +4,93 @@ Real-time gender detection and tracking from a webcam using Python, OpenCV, and 
 
 Each person that enters the frame is assigned a stable ID and classified as Man/Woman. A running total is displayed on screen and printed at the end of the session.
 
-## How it works
+---
 
+## Quick start
+
+### 1. Clone and enter the project
+
+```bash
+git clone https://github.com/aniketshaw29/gender-tracking-video.git
+cd gender-tracking-video
 ```
-Camera → Face Detection → Centroid Tracker (stable IDs) → Gender Classification → Display
+
+### 2. Create and activate a virtual environment
+
+```bash
+python3 -m venv .venv
+
+# macOS / Linux
+source .venv/bin/activate
+
+# Windows
+.venv\Scripts\activate
 ```
 
-| Component | File | What it does |
-|---|---|---|
-| Face detection | [detector.py](detector.py) | OpenCV DNN (ResNet SSD) or Haar cascade fallback |
-| Gender classification | [classifier.py](classifier.py) | DeepFace `analyze(actions=["gender"])` |
-| Person tracking | [tracker.py](tracker.py) | Centroid tracker — matches faces across frames by nearest distance |
-| Main loop | [main.py](main.py) | Camera capture, orchestration, display |
+You should see `(.venv)` in your terminal prompt.
 
-## Setup
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
+```
 
-# Download the better DNN face detector (optional but recommended)
+This installs OpenCV, DeepFace, TensorFlow/Keras, and NumPy. Expect ~2–5 minutes.
+
+### 4. Download the face detector model (recommended)
+
+```bash
 python download_models.py
 ```
 
-## Run
+This downloads OpenCV's ResNet SSD face detector into `models/`. Without it, the app falls back to a Haar cascade which is less accurate. See [docs/face-detection.md](docs/face-detection.md) for the difference.
+
+### 5. Run
 
 ```bash
-python main.py                  # default camera (index 0)
-python main.py --camera 1       # use a different camera
-python main.py --classify-every 20  # re-classify every 20 frames instead of 15
+python main.py
 ```
 
 Press **Q** to quit. Session totals are printed to the terminal on exit.
 
-## Controls
+---
 
-| Key | Action |
+## Options
+
+```bash
+python main.py --camera 1           # use a different camera index
+python main.py --classify-every 20  # re-classify every 20 frames (default 15)
+```
+
+---
+
+## Project files
+
+| File | Purpose |
 |---|---|
-| Q | Quit and print totals |
+| [main.py](main.py) | Entry point — camera loop, orchestration, display |
+| [detector.py](detector.py) | Face detection (DNN or Haar fallback) |
+| [classifier.py](classifier.py) | Gender classification via DeepFace |
+| [tracker.py](tracker.py) | Centroid tracker — stable IDs across frames |
+| [download_models.py](download_models.py) | Downloads the ResNet SSD face detector weights |
+| [requirements.txt](requirements.txt) | Python dependencies |
 
-## Notes
+---
 
-- DeepFace downloads its own model weights on first run (~100 MB).
-- Gender classification is not re-run every frame — only every `--classify-every` frames per tracked ID — to keep the loop responsive.
-- The DNN face detector is more accurate than the Haar fallback, especially at angles and in poor lighting.
+## Documentation
+
+| Doc | What it covers |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | System overview, data flow, component responsibilities |
+| [docs/face-detection.md](docs/face-detection.md) | How DNN and Haar face detection work |
+| [docs/gender-classification.md](docs/gender-classification.md) | How DeepFace classifies gender |
+| [docs/tracking.md](docs/tracking.md) | Centroid tracking algorithm |
+| [docs/performance.md](docs/performance.md) | Tuning for speed and accuracy |
+
+---
+
+## Deactivate the virtual environment
+
+```bash
+deactivate
+```
