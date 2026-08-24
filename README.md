@@ -32,7 +32,7 @@ You should see `(.venv)` in your terminal prompt.
 ### 3. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+.venv/bin/pip install -r requirements.txt
 ```
 
 This installs OpenCV, DeepFace, TensorFlow/Keras, and NumPy. Expect ~2–5 minutes.
@@ -40,7 +40,7 @@ This installs OpenCV, DeepFace, TensorFlow/Keras, and NumPy. Expect ~2–5 minut
 ### 4. Download the face detector model (recommended)
 
 ```bash
-python download_models.py
+.venv/bin/python download_models.py
 ```
 
 This downloads OpenCV's ResNet SSD face detector into `models/`. Without it, the app falls back to a Haar cascade which is less accurate. See [docs/face-detection.md](docs/face-detection.md) for the difference.
@@ -48,18 +48,20 @@ This downloads OpenCV's ResNet SSD face detector into `models/`. Without it, the
 ### 5. Run
 
 ```bash
-python main.py
+.venv/bin/python main.py
 ```
 
 Press **Q** to quit. Session totals are printed to the terminal on exit.
+
+> **macOS note:** Use `.venv/bin/python` explicitly rather than `python`. On macOS the bare `python` command resolves to the system framework Python at `/Library/Frameworks/Python.framework/...`, which ignores the virtual environment and won't find the installed packages.
 
 ---
 
 ## Options
 
 ```bash
-python main.py --camera 1           # use a different camera index
-python main.py --classify-every 20  # re-classify every 20 frames (default 15)
+.venv/bin/python main.py --camera 1           # use a different camera index
+.venv/bin/python main.py --classify-every 20  # re-classify every 20 frames (default 15)
 ```
 
 ---

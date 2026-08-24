@@ -10,10 +10,13 @@ class CentroidTracker:
         self.objects: OrderedDict[int, np.ndarray] = OrderedDict()
         self.disappeared: OrderedDict[int, int] = OrderedDict()
         self.max_disappeared = max_disappeared
+        self.just_deregistered: list[int] = []  # IDs removed this update call
 
     def update(
         self, boxes: list[tuple[int, int, int, int]]
     ) -> OrderedDict[int, np.ndarray]:
+        self.just_deregistered = []
+
         if not boxes:
             for obj_id in list(self.disappeared):
                 self.disappeared[obj_id] += 1
@@ -67,5 +70,7 @@ class CentroidTracker:
         self.next_id += 1
 
     def _deregister(self, obj_id: int) -> None:
+        self.just_deregistered.append(obj_id)
         del self.objects[obj_id]
         del self.disappeared[obj_id]
+
